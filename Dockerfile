@@ -1,20 +1,28 @@
-# Use an official Python runtime as a parent image
-FROM python:3.6.5
+FROM python:3
+MAINTAINER Brian Mask <brian@brianmask.com>
 
-# Set the working directory to /app
-WORKDIR /app
+ENV DEBIAN_FRONTEND noninteractive
 
-# Copy the current directory contents into the container at /app
-ADD . /app
+RUN apt-get update
+RUN apt-get install -y nginx supervisor
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
+# Setup flask application
+RUN mkdir -p /deploy/flaskr
+COPY flaskr /deploy/flaskr
+COPY instance /deploy/instance
+COPY requirements.txt /deploy/requirements.txt
+RUN pip install -r /deploy/requirements.txt
 
-# Make port 80 available to the world outside this container
-EXPOSE 80
+# Setup nginx
+RUN rm /etc/nginx/sites-enabled/default
+COPY flask.conf /etc/nginx/sites-available/
+RUN ln -s /etc/nginx/sites-available/flask.conf /etc/nginx/sites-enabled/flask.conf
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-# Define environment variable
-ENV NAME World
+# Setup supervisord
+RUN mkdir -p /var/log/supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY gunicorn.conf /etc/supervisor/conf.d/gunicorn.conf
 
-# Run app.py when the container launches
-CMD ["python", "app.py"]
+# Start processes
+CMD ["/usr/bin/supervisord"]

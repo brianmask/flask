@@ -6,6 +6,8 @@ from werkzeug.exceptions import abort
 from flaskr.auth import login_required
 from flaskr.db import get_db
 
+import socket
+
 bp = Blueprint('blog', __name__)
 
 
@@ -17,7 +19,7 @@ def index():
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
     ).fetchall()
-    return render_template('blog/index.html', posts=posts)
+    return render_template('blog/index.html', posts=posts, hostname=socket.gethostname())
 
 
 @bp.route('/create', methods=('GET', 'POST'))
